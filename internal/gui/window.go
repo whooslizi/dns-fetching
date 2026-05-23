@@ -74,14 +74,16 @@ func (w *Window) buildLayout() *fyne.Container {
 	providerLabel := canvas.NewText("Provider", color.NRGBA{R: 150, G: 150, B: 170, A: 255})
 	providerLabel.TextSize = 12
 
-	options := append(doh.ProviderNames(), "Custom")
-	w.providerSel = widget.NewSelect(options, w.onProviderChanged)
-	w.providerSel.SetSelected(w.cfg.Provider)
-
+	// customEntry must be created BEFORE SetSelected, because the
+	// onProviderChanged callback references it via Hide()/Show().
 	w.customEntry = widget.NewEntry()
 	w.customEntry.SetPlaceHolder("https://your-doh-server/dns-query")
 	w.customEntry.SetText(w.cfg.CustomURL)
 	w.customEntry.Hide()
+
+	options := append(doh.ProviderNames(), "Custom")
+	w.providerSel = widget.NewSelect(options, w.onProviderChanged)
+	w.providerSel.SetSelected(w.cfg.Provider)
 
 	providerBox := container.NewVBox(providerLabel, w.providerSel, w.customEntry)
 
