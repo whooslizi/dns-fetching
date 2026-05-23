@@ -3,6 +3,8 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,10 +68,67 @@ func findHelper() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// check next to our own binary first
+
 	helperPath := filepath.Join(filepath.Dir(self), "dns-fetching-helper")
+	if isInsideAppImage(helperPath) {
+		extracted, err := extractHelper(helperPath)
+		if err != nil {
+			return "", fmt.Errorf("extract helper from AppImage: %w", err)
+		}
+		return extracted, nil
+	}
+
 	if _, err := os.Stat(helperPath); err == nil {
 		return helperPath, nil
 	}
 	return exec.LookPath("dns-fetching-helper")
 }
+
+func isInsideAppImage(path string) bool {
+	return strings.HasPrefix(path, "/tmp/.mount_") || os.Getenv("APPIMAGE") != ""
+}
+func extractHelper(srcPath string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	destDir := filepath.Join(home, ".config", "dns-fetching", "bin")
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", err
+	}
+
+	destPath := filepath.Join(destDir, "dns-fetching-helper")
+
+	// check if source exists
+	srcInfo, err := os.Stat(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("helper not found in AppImage at %s: %w", srcPath, err)
+	}
+
+	// always overwrite to keep in sync with the running AppImage version
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return "", err
+	}
+
+	// ensure executable
+	if err := os.Chmod(destPath, 0755); err != nil {
+		return "", err
+	}
+
+	log.Printf("extracted helper (%d bytes) to %s", srcInfo.Size(), destPath)
+	return destPath, nil
+}
+
