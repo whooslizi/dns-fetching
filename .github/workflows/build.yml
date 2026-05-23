@@ -1,0 +1,88 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libfuse2
+
+      - name: Build main binary
+        run: CGO_ENABLED=1 go build -ldflags="-s -w" -o dns-fetching .
+
+      - name: Build helper binary
+        run: CGO_ENABLED=1 go build -ldflags="-s -w" -o dns-fetching-helper ./cmd/helper/
+
+      - name: Run tests
+        run: go test ./... -v -race
+
+      - name: Prepare AppDir
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp dns-fetching AppDir/usr/bin/
+          cp dns-fetching-helper AppDir/usr/bin/
+          cp assets/dns-fetching.desktop AppDir/usr/share/applications/
+          cp assets/dns-fetching.desktop AppDir/
+
+          # generate a simple icon if none exists
+          if [ -f assets/icon.png ]; then
+            cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
+            cp assets/icon.png AppDir/dns-fetching.png
+          else
+            convert -size 256x256 xc:'#00C8B4' AppDir/dns-fetching.png || true
+            cp AppDir/dns-fetching.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png || true
+          fi
+
+      - name: Download linuxdeploy
+        run: |
+          curl -fsSL -o linuxdeploy-x86_64.AppImage \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage
+
+      - name: Build AppImage
+        run: |
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            -e AppDir/usr/bin/dns-fetching \
+            -d AppDir/usr/share/applications/dns-fetching.desktop \
+            -i AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png \
+            --output appimage
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dns-fetching-linux
+          path: |
+            dns-fetching
+            dns-fetching-helper
+            DNS_Fetching*.AppImage
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dns-fetching
+            dns-fetching-helper
+            DNS_Fetching*.AppImage
+          generate_release_notes: true
