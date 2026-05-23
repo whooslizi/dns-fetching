@@ -49,8 +49,8 @@ jobs:
             cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
             cp assets/icon.png AppDir/dns-fetching.png
           else
-            convert -size 256x256 xc:'#00C8B4' AppDir/dns-fetching.png || true
-            cp AppDir/dns-fetching.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png || true
+            echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" | base64 -d > AppDir/dns-fetching.png
+            cp AppDir/dns-fetching.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
           fi
 
       - name: Download linuxdeploy
