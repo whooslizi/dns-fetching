@@ -37,14 +37,28 @@ jobs:
         run: |
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
+          
           cp dns-fetching AppDir/usr/bin/
           cp dns-fetching-helper AppDir/usr/bin/
           cp assets/dns-fetching.desktop AppDir/usr/share/applications/
           cp assets/dns-fetching.desktop AppDir/
 
-
+          if [ -f assets/icon.png ]; then
+            mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+            cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
+            cp assets/icon.png AppDir/dns-fetching.png
+            echo "ICON_FLAG=-i AppDir/dns-fetching.png" >> $GITHUB_ENV
+          elif [ -f assets/icon.svg ]; then
+            mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
+            cp assets/icon.svg AppDir/usr/share/icons/hicolor/scalable/apps/dns-fetching.svg
+            cp assets/icon.svg AppDir/dns-fetching.svg
+            echo "ICON_FLAG=-i AppDir/dns-fetching.svg" >> $GITHUB_ENV
+          else
+            mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
+            echo '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"></svg>' > AppDir/dns-fetching.svg
+            cp AppDir/dns-fetching.svg AppDir/usr/share/icons/hicolor/scalable/apps/dns-fetching.svg
+            echo "ICON_FLAG=-i AppDir/dns-fetching.svg" >> $GITHUB_ENV
+          fi
 
       - name: Download linuxdeploy
         run: |
@@ -58,6 +72,7 @@ jobs:
             --appdir AppDir \
             -e AppDir/usr/bin/dns-fetching \
             -d AppDir/usr/share/applications/dns-fetching.desktop \
+            ${{ env.ICON_FLAG }} \
             --output appimage
 
       - name: Upload artifacts
