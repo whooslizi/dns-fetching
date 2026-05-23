@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=DNS Fetching
+Comment=Encrypted DNS-over-HTTPS Client
+Exec=dns-fetching
+Icon=dns-fetching
+Categories=Network;Security;
+Keywords=DNS;DoH;Privacy;Security;Encryption;
+StartupNotify=true
