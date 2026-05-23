@@ -44,14 +44,7 @@ jobs:
           cp assets/dns-fetching.desktop AppDir/usr/share/applications/
           cp assets/dns-fetching.desktop AppDir/
 
-          # generate a simple icon if none exists
-          if [ -f assets/icon.png ]; then
-            cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
-            cp assets/icon.png AppDir/dns-fetching.png
-          else
-            echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" | base64 -d > AppDir/dns-fetching.png
-            cp AppDir/dns-fetching.png AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png
-          fi
+
 
       - name: Download linuxdeploy
         run: |
@@ -65,7 +58,6 @@ jobs:
             --appdir AppDir \
             -e AppDir/usr/bin/dns-fetching \
             -d AppDir/usr/share/applications/dns-fetching.desktop \
-            -i AppDir/usr/share/icons/hicolor/256x256/apps/dns-fetching.png \
             --output appimage
 
       - name: Upload artifacts
